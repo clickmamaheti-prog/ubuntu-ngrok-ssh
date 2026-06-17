@@ -4,38 +4,38 @@ set -e
 echo "=== Starting SSH service ==="
 service ssh start
 
-# Check Ngrok token
-if [ -z "$NGROK_AUTH_TOKEN" ]; then
-  echo "Error: NGROK_AUTH_TOKEN is not set."
-  echo "Set it as an environment variable on your platform (e.g. Railway, Render, etc.)."
-  exit 1
-fi
+echo "=== Starting Bore TCP tunnel for SSH (port 22) ==="
+bore local 22 --to bore.pub > /tmp/bore.log 2>&1 &
 
-# Configure Ngrok
-ngrok config add-authtoken "$NGROK_AUTH_TOKEN"
-
-echo "=== Starting Ngrok TCP tunnel for SSH (port 22) ==="
-ngrok tcp 22 --region ap --log=stdout > /tmp/ngrok.log 2>&1 &
-
-# Wait for Ngrok to start
+# Tunggu bore mulai
 sleep 5
 
-# Get tunnel URL
-TUNNEL_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | grep -Eo "tcp://[0-9a-zA-Z\.\-]+:[0-9]+" | head -n 1)
+# Ambil port dari log
+BORE_PORT=$(grep -oE 'remote_port=[0-9]+' /tmp/bore.log | grep -oE '[0-9]+$' | head -n 1)
+
+if [ -z "$BORE_PORT" ]; then
+  BORE_PORT=$(grep -oE 'listening at bore\.pub:[0-9]+' /tmp/bore.log | grep -oE '[0-9]+$' | head -n 1)
+fi
+
+if [ -z "$BORE_PORT" ]; then
+  BORE_PORT=$(grep -oE '[0-9]{4,5}' /tmp/bore.log | head -n 1)
+fi
 
 echo ""
-if [ -n "$TUNNEL_URL" ]; then
-  HOST_PORT=$(echo "$TUNNEL_URL" | sed 's#tcp://##')
-  echo "=== SSH tunnel is ready ==="
-  echo "Ngrok TCP: $TUNNEL_URL"
+if [ -n "$BORE_PORT" ]; then
+  echo "==============================="
+  echo "  SSH TUNNEL READY via Bore"
+  echo "==============================="
   echo ""
-  echo "Connect using:"
-  echo "  ssh ubuntu@$HOST_PORT"
+  echo "  Connect using:"
+  echo "  ssh ubuntu@bore.pub -p $BORE_PORT"
   echo ""
-  echo "Default username: ubuntu"
-  echo "Default password: ubuntu"
+  echo "  Username : ubuntu"
+  echo "  Password : ubuntu"
+  echo "==============================="
 else
-  echo "Failed to retrieve Ngrok tunnel. Check /tmp/ngrok.log for details."
+  echo "=== Bore log ==="
+  cat /tmp/bore.log
 fi
 
 echo ""
