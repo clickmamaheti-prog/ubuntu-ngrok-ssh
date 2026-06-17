@@ -1,32 +1,55 @@
-# Ubuntu Bore SSH
+# 🚀 Rairu SSH VPS — Bore Tunnel (No Token)
 
-Remote SSH access via [Bore](https://github.com/ekzhang/bore) tunnel — no auth token needed.
+**Free lifetime VPS via Railway + Bore TCP tunnel.** No Ngrok account needed!
 
-## Connect
+> Get push notifications on your phone via [ntfy.sh](https://ntfy.sh) with the SSH port every time the tunnel starts.
+
+## 📱 Setup Notifikasi (ntfy.sh)
+
+1. Install **ntfy** di HP kamu: [ntfy.sh/docs](https://ntfy.sh/#subscribe)
+2. Subscribe ke topic: `rairu-clickmamaheti`
+3. Setiap kali VPS restart, port SSH baru dikirim ke HP kamu otomatis!
+
+## 🔌 Connect SSH
 
 ```bash
-ssh ubuntu@bore.pub -p <PORT>
+# Cek ntfy.sh untuk port terbaru, lalu:
+ssh root@bore.pub -p <PORT>
+# Password: rairu123
+
+ssh ubuntu@bore.pub -p <PORT>  
+# Password: ubuntu
 ```
 
-- **Username:** `ubuntu`
-- **Password:** `ubuntu`
-- **Port:** shown in Railway deployment logs
+## 🚂 Deploy ke Railway
 
-## How it works
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new)
 
-1. Ubuntu 22.04 container starts
-2. SSH daemon starts on port 22
-3. Bore creates a public TCP tunnel → `bore.pub:<random_port>`
-4. If bore disconnects, it auto-reconnects
+1. Fork repo ini
+2. Buat project baru di Railway
+3. Connect ke repo hasil fork
+4. Deploy otomatis!
 
-## Stack
+## 🌐 Multi-Platform
 
-- Ubuntu 22.04
-- OpenSSH Server
-- [Bore v0.5.0](https://github.com/ekzhang/bore) (open-source ngrok alternative)
+| Platform | Status | Config |
+|----------|--------|--------|
+| Railway | ✅ | `railway.json` + `Dockerfile` |
+| Render | ✅ | `render.yaml` |
+| Fly.io | ✅ | `fly.toml` |
 
-## Deploy to Railway
+## ⚙️ Spec (Railway Free Tier)
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template)
+- **RAM:** ~512MB - 2GB
+- **CPU:** Shared
+- **Storage:** 10GB
+- **Uptime:** 99%+ dengan auto-restart
 
-No environment variables required.
+## 🔧 Environment Variables
+
+| Variable | Default | Keterangan |
+|----------|---------|------------|
+| `NTFY_TOPIC` | `rairu-clickmamaheti` | Topic ntfy.sh notifikasi |
+| `BORE_SERVER` | `bore.pub` | Bore server (bisa self-host) |
+| `SSH_PORT` | `22` | Port SSH lokal |
+| `KEEP_ALIVE_PORT` | `8080` | Port HTTP health check |
