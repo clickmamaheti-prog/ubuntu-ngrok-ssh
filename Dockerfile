@@ -1,55 +1,54 @@
-FROM ubuntu:22.04
+FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive \
     BORE_SERVER=bore.pub \
     SSH_PORT=22 \
-    KEEP_ALIVE_PORT=8080
+    KEEP_ALIVE_PORT=8080 \
+    NTFY_TOPIC=rairu-clickmamaheti
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
         openssh-server \
+        wget \
         curl \
-        ca-certificates \
         python3 \
+        vim \
         sudo \
-        net-tools \
-        iproute2 && \
-    rm -rf /var/lib/apt/lists/* && \
-    apt-get clean
+        net-tools && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /var/run/sshd /var/log/bore
-
-# User ubuntu dengan sudo tanpa password
-RUN useradd -m -s /bin/bash ubuntu && \
-    echo "ubuntu:ubuntu" | chpasswd && \
-    usermod -aG sudo ubuntu && \
-    echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Install Bore v0.5.0 (stable)
-RUN curl -sSL https://github.com/ekzhang/bore/releases/download/v0.5.0/bore-v0.5.0-x86_64-unknown-linux-musl.tar.gz \
-    -o /tmp/bore.tar.gz && \
+# Install Bore v0.5.0
+RUN wget -q https://github.com/ekzhang/bore/releases/download/v0.5.0/bore-v0.5.0-x86_64-unknown-linux-musl.tar.gz \
+        -O /tmp/bore.tar.gz && \
     tar -xzf /tmp/bore.tar.gz -C /usr/local/bin bore && \
-    rm /tmp/bore.tar.gz && \
     chmod +x /usr/local/bin/bore && \
+    rm /tmp/bore.tar.gz && \
     bore --version
 
-# SSH hardening + password auth
+# Setup SSH: root + user ubuntu
+RUN mkdir -p /run/sshd /var/log/bore && \
+    echo "root:rairu123" | chpasswd && \
+    useradd -m -s /bin/bash ubuntu && \
+    echo "ubuntu:ubuntu" | chpasswd && \
+    usermod -aG sudo ubuntu && \
+    echo "ubuntu ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    ssh-keygen -A
+
+# SSH config: allow password + root login
 RUN sed -i \
+        -e 's/#PermitRootLogin.*/PermitRootLogin yes/' \
+        -e 's/PermitRootLogin prohibit-password/PermitRootLogin yes/' \
         -e 's/#PasswordAuthentication yes/PasswordAuthentication yes/' \
         -e 's/PasswordAuthentication no/PasswordAuthentication yes/' \
-        -e 's/#PermitRootLogin.*/PermitRootLogin no/' \
-        -e 's/#MaxAuthTries.*/MaxAuthTries 6/' \
         -e 's/#ClientAliveInterval.*/ClientAliveInterval 60/' \
-        -e 's/#ClientAliveCountMax.*/ClientAliveCountMax 3/' \
-        /etc/ssh/sshd_config && \
-    echo "AllowUsers ubuntu" >> /etc/ssh/sshd_config
+        -e 's/#ClientAliveCountMax.*/ClientAliveCountMax 10/' \
+        /etc/ssh/sshd_config
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 22 8080
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD pgrep -x sshd > /dev/null && pgrep -x bore > /dev/null || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=5 \
+    CMD pgrep sshd > /dev/null && pgrep bore > /dev/null || exit 1
 
 CMD ["/entrypoint.sh"]
