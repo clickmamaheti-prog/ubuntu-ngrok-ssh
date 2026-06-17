@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: rairu-bore-ssh
+    runtime: docker
+    repo: https://github.com/clickmamaheti-prog/ubuntu-ngrok-ssh
+    region: singapore
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: NTFY_TOPIC
+        value: rairu-clickmamaheti
